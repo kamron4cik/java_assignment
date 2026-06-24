@@ -159,3 +159,4 @@ curl -X POST http://localhost/api/v1/rentals/finish \
   -H "Content-Type: application/json" \
   -d '{"rentalId":"<rental-id>"}'
 ```
+# java_assignment

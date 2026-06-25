@@ -39,15 +39,12 @@ keycloak:
 otp:
   expiry-minutes: 5
 
-# ── Telegram Bot OTP ──────────────────────────────────────────────
-# Set TELEGRAM_ENABLED=true and TELEGRAM_BOT_TOKEN=<your-bot-token>
+# ── Telegram Gateway API OTP ──────────────────────────────────────────────
+# Set TELEGRAM_ENABLED=true and TELEGRAM_BOT_TOKEN=<your-gateway-token>
 # in docker-compose env to activate real Telegram delivery.
-# TELEGRAM_CHAT_IDS maps phone numbers to Telegram chat IDs:
-#   e.g. "+998901234567:123456789,+998907654321:987654321"
 telegram:
   enabled: ${TELEGRAM_ENABLED:false}
   bot-token: ${TELEGRAM_BOT_TOKEN:CHANGE_ME}
-  chat-ids: ${TELEGRAM_CHAT_IDS:{}}
 
 grpc:
   server:

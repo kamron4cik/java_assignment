@@ -17,8 +17,12 @@ import uz.pdp.userservice.exception.UserNotFoundException;
 import uz.pdp.userservice.repository.OtpCodeRepository;
 import uz.pdp.userservice.repository.UserRepository;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.List;
 import java.util.Random;
 
 @Slf4j
@@ -85,6 +89,13 @@ public class AuthService {
                         User.builder().phone(request.getPhone()).build()
                 ));
 
+        // Ensure Keycloak user exists and persist its UUID so GET /v1/me can find the user
+        String keycloakUuid = ensureKeycloakUserExists(request.getPhone(), user.getId().toString());
+        if (keycloakUuid != null && !keycloakUuid.equals(user.getKeycloakId())) {
+            user.setKeycloakId(keycloakUuid);
+            userRepository.save(user);
+        }
+
         // Authenticate with Keycloak using Resource Owner Password Credentials Grant
         return authenticateWithKeycloak(request.getPhone(), user.getId().toString());
     }
@@ -107,6 +118,89 @@ public class AuthService {
     }
 
     // ─── private helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Ensures the user exists in Keycloak and returns their Keycloak UUID.
+     * This UUID must be stored as keycloakId on the local User so that
+     * GET /v1/me (which looks up by JWT subject = Keycloak UUID) works.
+     */
+    @SuppressWarnings("unchecked")
+    private String ensureKeycloakUserExists(String phone, String userId) {
+        try {
+            // Get admin token from master realm
+            String tokenUrl = String.format("%s/realms/master/protocol/openid-connect/token", keycloakServerUrl);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("grant_type", "password");
+            body.add("client_id", "admin-cli");
+            body.add("username", "admin");
+            body.add("password", "admin");
+
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, entity, Map.class);
+            String adminToken = (String) response.getBody().get("access_token");
+
+            HttpHeaders adminHeaders = new HttpHeaders();
+            adminHeaders.setBearerAuth(adminToken);
+
+            // URL-encode phone so '+' is sent as '%2B', not interpreted as space
+            String encodedPhone = URLEncoder.encode(phone, StandardCharsets.UTF_8);
+            String usersUrl = String.format("%s/admin/realms/%s/users?exact=true&username=%s",
+                    keycloakServerUrl, realm, encodedPhone);
+
+            // Check if user already exists — use URI.create() so RestTemplate does NOT double-encode %2B
+            ResponseEntity<List> usersResponse = restTemplate.exchange(
+                    URI.create(usersUrl), HttpMethod.GET, new HttpEntity<>(adminHeaders), List.class);
+
+            if (usersResponse.getBody() != null && !usersResponse.getBody().isEmpty()) {
+                // User already exists — return their Keycloak UUID
+                Map<String, Object> existing = (Map<String, Object>) usersResponse.getBody().get(0);
+                String keycloakId = (String) existing.get("id");
+                log.info("Keycloak user {} already exists with id {}", phone, keycloakId);
+                return keycloakId;
+            }
+
+            // Create user in Keycloak
+            String createUserUrl = String.format("%s/admin/realms/%s/users", keycloakServerUrl, realm);
+            Map<String, Object> userDef = Map.of(
+                "username", phone,
+                "enabled", true,
+                "email", phone.replace("+", "") + "@powerbank.uz",
+                "firstName", "User",
+                "lastName", phone,
+                "credentials", List.of(
+                    Map.of(
+                        "type", "password",
+                        "value", userId,
+                        "temporary", false
+                    )
+                )
+            );
+            HttpHeaders createHeaders = new HttpHeaders();
+            createHeaders.setContentType(MediaType.APPLICATION_JSON);
+            createHeaders.setBearerAuth(adminToken);
+            try {
+                ResponseEntity<String> createResp = restTemplate.postForEntity(
+                        createUserUrl, new HttpEntity<>(userDef, createHeaders), String.class);
+                log.info("Created Keycloak user {} — HTTP {}", phone, createResp.getStatusCode());
+            } catch (org.springframework.web.client.HttpClientErrorException.Conflict ex) {
+                // 409: user was created between our check and create (race) — that's fine, fall through
+                log.warn("Keycloak user {} already existed (409), fetching their UUID", phone);
+            }
+
+            // Fetch the user UUID (whether just created or pre-existing) — URI.create() prevents double-encoding
+            ResponseEntity<List> newUsersResp = restTemplate.exchange(
+                    URI.create(usersUrl), HttpMethod.GET, new HttpEntity<>(adminHeaders), List.class);
+            if (newUsersResp.getBody() != null && !newUsersResp.getBody().isEmpty()) {
+                Map<String, Object> created = (Map<String, Object>) newUsersResp.getBody().get(0);
+                return (String) created.get("id");
+            }
+        } catch (Exception e) {
+            log.error("Failed to ensure Keycloak user exists", e);
+        }
+        return null;
+    }
 
     private String generateOtpCode() {
         return String.format("%06d", new Random().nextInt(999999));

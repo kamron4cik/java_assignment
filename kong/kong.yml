@@ -22,18 +22,10 @@ services:
         paths: ["/v1/me"]
         methods: ["GET"]
         strip_path: false
-        plugins:
-          - name: jwt
-            config:
-              secret_is_base64: false
 
   # ─── Payment Service ─────────────────────────────────────────────────────
   - name: payment-service
     url: http://payment-service:8082
-    plugins:
-      - name: jwt
-        config:
-          secret_is_base64: false
     routes:
       - name: payment-cards
         paths: ["/v1/cards"]
@@ -47,34 +39,26 @@ services:
   # ─── Station Service ─────────────────────────────────────────────────────
   - name: station-service
     url: http://station-service:8083
-    plugins:
-      - name: jwt
-        config:
-          secret_is_base64: false
     routes:
       - name: stations-list
         paths: ["/v1/stations"]
         methods: ["GET"]
         strip_path: false
       - name: stations-detail
-        paths: ["/v1/stations/(?<id>[^/]+)"]
+        paths: ["~/v1/stations/(?<id>[^/]+)"]
         methods: ["GET"]
         strip_path: false
 
   # ─── Rental Service ──────────────────────────────────────────────────────
   - name: rental-service
     url: http://rental-service:8084
-    plugins:
-      - name: jwt
-        config:
-          secret_is_base64: false
     routes:
       - name: rentals-create
         paths: ["/api/v1/rentals"]
         methods: ["POST"]
         strip_path: false
       - name: rentals-status
-        paths: ["/api/v1/rentals/(?<id>[^/]+)/status"]
+        paths: ["~/api/v1/rentals/(?<id>[^/]+)/status"]
         methods: ["GET"]
         strip_path: false
       - name: rentals-history

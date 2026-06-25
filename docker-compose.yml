@@ -174,7 +174,7 @@ services:
       # ── Telegram OTP (optional) ───────────────────────────────────────
       # Set TELEGRAM_ENABLED=true and supply bot token + chat ID map to
       # enable real OTP delivery via Telegram. Leave as-is for dev mode.
-      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_ENABLED: true
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-CHANGE_ME}
       TELEGRAM_CHAT_IDS: ${TELEGRAM_CHAT_IDS:-{}}
     ports:

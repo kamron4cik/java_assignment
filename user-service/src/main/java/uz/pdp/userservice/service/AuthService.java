@@ -2,6 +2,7 @@ package uz.pdp.userservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 @Slf4j
@@ -33,6 +35,10 @@ public class AuthService {
     private final UserRepository userRepository;
     private final OtpCodeRepository otpCodeRepository;
     private final RestTemplate restTemplate;
+
+    /** Injected only when telegram.enabled=true — otherwise absent */
+    @Autowired(required = false)
+    private TelegramService telegramService;
 
     @Value("${keycloak.server-url}")
     private String keycloakServerUrl;
@@ -65,9 +71,11 @@ public class AuthService {
                 .build();
         otpCodeRepository.save(otp);
 
-        // In production: send via Telegram Bot API
-        // TelegramService.sendMessage(phone, "Your code: " + code);
-        log.info("OTP for {} is: {} (simulated - not sent in dev mode)", phone, code);
+        // Try Telegram first; fall back to log-only in dev mode
+        boolean sentViaTelegram = telegramService != null && telegramService.sendOtp(phone, code);
+        if (!sentViaTelegram) {
+            log.info("OTP for {} is: {} (Telegram disabled or no chat_id — dev mode)", phone, code);
+        }
     }
 
     /**

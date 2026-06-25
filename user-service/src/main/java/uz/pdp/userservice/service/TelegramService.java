@@ -3,19 +3,21 @@ package uz.pdp.userservice.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
 /**
- * Sends OTP codes via Telegram Gateway API.
+ * Sends OTP codes via Telegram Bot API.
  *
- * This implementation uses the Telegram Gateway API to send verification codes
- * to users based on their phone number.
+ * The bot must have previously received a message from the user (or be in a group
+ * with them) so Telegram knows the chat_id. In this implementation the phone number
+ * is used as the chat_id lookup key stored in the {@code TELEGRAM_CHAT_IDS} env var
+ * (comma-separated "phone:chatId" pairs) for demo purposes.
+ *
+ * Example env var:
+ *   TELEGRAM_CHAT_IDS=+998901234567:123456789,+998907654321:987654321
  *
  * Activation: set {@code telegram.enabled=true} (or env TELEGRAM_ENABLED=true).
  * When disabled the OTP is only logged (dev mode).
@@ -28,40 +30,48 @@ public class TelegramService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${telegram.bot-token}")
-    private String apiToken;
+    private String botToken;
 
     /**
-     * Send an OTP message via Telegram Gateway API.
+     * Map of phone → Telegram chat_id, populated from env:
+     *   TELEGRAM_CHAT_IDS=+998901234567:123456789,...
+     */
+    @Value("#{${telegram.chat-ids:{}}}")
+    private Map<String, String> chatIds;
+
+    /**
+     * Send an OTP message to the Telegram chat associated with the phone number.
      *
-     * @param phone the user's phone number (E.164 format)
-     * @param code  the verification code
-     * @return true if successfully processed by the gateway
+     * @param phone the user's phone number (key for chat_id lookup)
+     * @param code  the 6-digit OTP code
+     * @return true if delivered, false if no chat_id mapping exists
      */
     public boolean sendOtp(String phone, String code) {
-        String url = "https://gatewayapi.telegram.org/sendVerificationMessage";
+        String chatId = chatIds.get(phone);
+        if (chatId == null) {
+            log.warn("No Telegram chat_id mapped for phone={} — OTP not sent via Telegram", phone);
+            return false;
+        }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiToken);
+        String url = String.format(
+                "https://api.telegram.org/bot%s/sendMessage", botToken);
+
+        String text = String.format(
+                "🔐 *PowerBank OTP*\n\nYour verification code: `%s`\n\n_Valid for 5 minutes. Do not share this code._",
+                code);
 
         Map<String, Object> body = Map.of(
-                "phone_number", phone,
-                "code", code
+                "chat_id", chatId,
+                "text", text,
+                "parse_mode", "Markdown"
         );
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
         try {
-            Map response = restTemplate.postForObject(url, entity, Map.class);
-            if (response != null && Boolean.TRUE.equals(response.get("ok"))) {
-                log.info("OTP sent via Telegram Gateway to phone={}", phone);
-                return true;
-            } else {
-                log.error("Telegram Gateway API returned error: {}", response);
-                return false;
-            }
+            restTemplate.postForObject(url, body, Map.class);
+            log.info("OTP sent via Telegram to phone={} chatId={}", phone, chatId);
+            return true;
         } catch (Exception e) {
-            log.error("Failed to send OTP via Telegram Gateway to phone={}: {}", phone, e.getMessage());
+            log.error("Failed to send Telegram OTP to phone={}: {}", phone, e.getMessage());
             return false;
         }
     }

@@ -171,10 +171,12 @@ services:
       KEYCLOAK_CLIENT_ID: user-service
       KEYCLOAK_CLIENT_SECRET: user-service-secret
       SERVER_PORT: 8081
-      # ── Telegram Gateway OTP (optional) ───────────────────────────────────────
-      # Set TELEGRAM_ENABLED=true and supply Gateway token to enable real OTP delivery.
-      TELEGRAM_ENABLED: true
-      TELEGRAM_BOT_TOKEN: 8668580155:AAFc0uD0_5_BrlCh_5fSofCF49c86e7YHRQ
+      # ── Telegram OTP (optional) ───────────────────────────────────────
+      # Set TELEGRAM_ENABLED=true and supply bot token + chat ID map to
+      # enable real OTP delivery via Telegram. Leave as-is for dev mode.
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-CHANGE_ME}
+      TELEGRAM_CHAT_IDS: ${TELEGRAM_CHAT_IDS:-{}}
     ports:
       - "8081:8081"
     depends_on:

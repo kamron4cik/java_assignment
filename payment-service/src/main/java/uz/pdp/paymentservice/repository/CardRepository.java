@@ -1,5 +1,7 @@
 package uz.pdp.paymentservice.repository;
 
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -19,6 +21,10 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
     Optional<Card> findByIdAndUserIdAndIsActiveTrue(UUID id, UUID userId);
 
     Optional<Card> findByUserIdAndIsDefaultTrueAndIsActiveTrue(UUID userId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Card c WHERE c.id = :id")
+    Optional<Card> findByIdForUpdate(UUID id);
 
     /**
      * Atomic debit using optimistic lock - prevents double spending.

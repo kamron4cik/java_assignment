@@ -9,5 +9,6 @@
     <include file="db/changelog/002-create-slots.sql"/>
     <include file="db/changelog/003-create-powerbanks.sql"/>
     <include file="db/changelog/004-seed-data.sql"/>
+    <include file="db/changelog/005-create-outbox.sql"/>
 
 </databaseChangeLog>

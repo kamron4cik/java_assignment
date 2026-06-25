@@ -106,17 +106,31 @@ public class PaymentService {
             return;
         }
 
-        // Atomically debit the card
+        // Atomically debit the card using pessimistic locking
         PaymentStatus previousStatus = payment.getStatus();
-        int updated = cardRepository.debitBalance(event.getCardId(), event.getAmount());
-
-        if (updated == 0) {
+        
+        try {
+            Card card = cardRepository.findByIdForUpdate(event.getCardId())
+                    .orElseThrow(() -> new CardNotFoundException("Card not found"));
+            
+            if (!card.getIsActive()) {
+                payment.setStatus(PaymentStatus.FAILED);
+                payment.setFailureReason("Card is inactive");
+                log.warn("Payment FAILED - card inactive: rentalId={}", event.getRentalId());
+            } else if (card.getBalance().compareTo(event.getAmount()) < 0) {
+                payment.setStatus(PaymentStatus.FAILED);
+                payment.setFailureReason("Insufficient funds");
+                log.warn("Payment FAILED - insufficient funds: rentalId={}", event.getRentalId());
+            } else {
+                card.setBalance(card.getBalance().subtract(event.getAmount()));
+                cardRepository.save(card);
+                payment.setStatus(PaymentStatus.SUCCESS);
+                log.info("Payment SUCCESS: rentalId={}, amount={}", event.getRentalId(), event.getAmount());
+            }
+        } catch (Exception e) {
             payment.setStatus(PaymentStatus.FAILED);
-            payment.setFailureReason("Insufficient funds");
-            log.warn("Payment FAILED - insufficient funds: rentalId={}", event.getRentalId());
-        } else {
-            payment.setStatus(PaymentStatus.SUCCESS);
-            log.info("Payment SUCCESS: rentalId={}, amount={}", event.getRentalId(), event.getAmount());
+            payment.setFailureReason(e.getMessage());
+            log.error("Payment FAILED - error: rentalId={}, error={}", event.getRentalId(), e.getMessage());
         }
 
         payment = paymentRepository.save(payment);
@@ -164,13 +178,25 @@ public class PaymentService {
         }
 
         PaymentStatus previousStatus = payment.getStatus();
-        int updated = cardRepository.debitBalance(card.getId(), request.getAmount());
-
-        if (updated == 0) {
+        
+        try {
+            Card lockedCard = cardRepository.findByIdForUpdate(card.getId())
+                    .orElseThrow(() -> new CardNotFoundException("Card not found"));
+                    
+            if (!lockedCard.getIsActive()) {
+                payment.setStatus(PaymentStatus.FAILED);
+                payment.setFailureReason("Card is inactive");
+            } else if (lockedCard.getBalance().compareTo(request.getAmount()) < 0) {
+                payment.setStatus(PaymentStatus.FAILED);
+                payment.setFailureReason("Insufficient funds");
+            } else {
+                lockedCard.setBalance(lockedCard.getBalance().subtract(request.getAmount()));
+                cardRepository.save(lockedCard);
+                payment.setStatus(PaymentStatus.SUCCESS);
+            }
+        } catch (Exception e) {
             payment.setStatus(PaymentStatus.FAILED);
-            payment.setFailureReason("Insufficient funds");
-        } else {
-            payment.setStatus(PaymentStatus.SUCCESS);
+            payment.setFailureReason(e.getMessage());
         }
 
         payment = paymentRepository.save(payment);

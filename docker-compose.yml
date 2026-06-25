@@ -173,8 +173,8 @@ services:
       SERVER_PORT: 8081
       # ── Telegram Gateway OTP (optional) ───────────────────────────────────────
       # Set TELEGRAM_ENABLED=true and supply Gateway token to enable real OTP delivery.
-      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-CHANGE_ME}
+      TELEGRAM_ENABLED: true
+      TELEGRAM_BOT_TOKEN: 8668580155:AAFc0uD0_5_BrlCh_5fSofCF49c86e7YHRQ
     ports:
       - "8081:8081"
     depends_on:

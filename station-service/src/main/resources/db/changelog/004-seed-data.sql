@@ -1,0 +1,42 @@
+-- liquibase formatted sql
+-- changeset station-service:004-seed-data
+
+-- Seed 3 demo stations in Tashkent
+INSERT INTO stations (id, name, latitude, longitude, address, is_active)
+VALUES
+    ('a1000000-0000-0000-0000-000000000001', 'Yunusobod Metro', 41.3498, 69.3204, 'Yunusobod, Tashkent', true),
+    ('a1000000-0000-0000-0000-000000000002', 'Chorsu Bazaar', 41.3265, 69.2348, 'Chorsu, Tashkent', true),
+    ('a1000000-0000-0000-0000-000000000003', 'Amir Timur Square', 41.2995, 69.2401, 'City Center, Tashkent', true)
+ON CONFLICT DO NOTHING;
+
+-- Seed slots for Station 1
+INSERT INTO slots (id, station_id, slot_number, status)
+VALUES
+    ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 1, 'FREE'),
+    ('b1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', 2, 'FREE'),
+    ('b1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', 3, 'FREE')
+ON CONFLICT DO NOTHING;
+
+-- Seed powerbanks for Station 1 slots
+INSERT INTO power_banks (id, slot_id, battery_level, status)
+VALUES
+    ('c1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 95, 'AVAILABLE'),
+    ('c1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000002', 88, 'AVAILABLE'),
+    ('c1000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000003', 72, 'AVAILABLE')
+ON CONFLICT DO NOTHING;
+
+-- Seed slots for Station 2
+INSERT INTO slots (id, station_id, slot_number, status)
+VALUES
+    ('b2000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', 1, 'FREE'),
+    ('b2000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', 2, 'FREE')
+ON CONFLICT DO NOTHING;
+
+-- Seed powerbanks for Station 2
+INSERT INTO power_banks (id, slot_id, battery_level, status)
+VALUES
+    ('c2000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000001', 100, 'AVAILABLE'),
+    ('c2000000-0000-0000-0000-000000000002', 'b2000000-0000-0000-0000-000000000002', 65, 'AVAILABLE')
+ON CONFLICT DO NOTHING;
+
+-- rollback DELETE FROM power_banks WHERE id LIKE 'c%'; DELETE FROM slots WHERE id LIKE 'b%'; DELETE FROM stations WHERE id LIKE 'a1%';

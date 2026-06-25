@@ -1,0 +1,33 @@
+{
+  "realm": "powerbank",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "clients": [
+    {
+      "clientId": "user-service",
+      "enabled": true,
+      "secret": "user-service-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false
+    },
+    {
+      "clientId": "kong",
+      "enabled": true,
+      "secret": "kong-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "USER", "description": "Regular user" },
+      { "name": "ADMIN", "description": "Admin" }
+    ]
+  },
+  "defaultRoles": ["USER"]
+}

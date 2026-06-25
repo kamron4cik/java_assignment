@@ -160,3 +160,4 @@ curl -X POST http://localhost/api/v1/rentals/finish \
   -d '{"rentalId":"<rental-id>"}'
 ```
 # java_assignment
+# java_assignment

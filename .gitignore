@@ -34,3 +34,6 @@ build/
 
 ### Local test frontend ###
 frontend/
+
+### Environment Variables ###
+.env

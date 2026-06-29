@@ -1,6 +1,6 @@
 package uz.pdp.stationservice.entity;
 
-import jakarta.persistence;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.ZonedDateTime;

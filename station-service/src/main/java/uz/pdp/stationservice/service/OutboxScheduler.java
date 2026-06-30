@@ -17,7 +17,7 @@ import java.util.List;
 public class OutboxScheduler {
 
     private final OutboxEventRepository outboxEventRepository;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, String> outboxKafkaTemplate;
 
     @Scheduled(fixedDelayString = "${outbox.scheduler.delay:2000}")
     @Transactional
@@ -27,7 +27,7 @@ public class OutboxScheduler {
         for (OutboxEvent event : pendingEvents) {
             try {
                 // Send raw JSON payload to Kafka
-                kafkaTemplate.send(event.getEventType(), event.getAggregateId(), event.getPayload())
+                outboxKafkaTemplate.send(event.getEventType(), event.getAggregateId(), event.getPayload())
                         .get(); // Synchronous wait to ensure delivery order within the same thread
 
                 event.setStatus(OutboxEvent.OutboxStatus.SENT);

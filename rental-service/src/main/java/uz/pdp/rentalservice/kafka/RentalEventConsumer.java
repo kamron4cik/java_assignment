@@ -20,7 +20,8 @@ public class RentalEventConsumer {
     /** Step 2 result: station locked or failed */
     @KafkaListener(
             topics = "acquire-cabinet-lock-result",
-            groupId = "${spring.kafka.consumer.group-id:rental-service-group}"
+            groupId = "${spring.kafka.consumer.group-id:rental-service-group}",
+            containerFactory = "lockResultListenerContainerFactory"
     )
     public void handleLockResult(CabinetLockResultEvent event) {
         log.info("Lock result received: rentalId={} success={}", event.getRentalId(), event.isSuccess());
@@ -30,7 +31,8 @@ public class RentalEventConsumer {
     /** Step 3 result: payment succeeded or failed */
     @KafkaListener(
             topics = "payment-events",
-            groupId = "${spring.kafka.consumer.group-id:rental-service-group}"
+            groupId = "${spring.kafka.consumer.group-id:rental-service-group}",
+            containerFactory = "paymentResultListenerContainerFactory"
     )
     public void handlePaymentResult(PaymentResultEvent event) {
         if (event.getRentalId() == null) {
@@ -43,7 +45,8 @@ public class RentalEventConsumer {
     /** Step 4 result: powerbank ejected or failed */
     @KafkaListener(
             topics = "eject-powerbank-result",
-            groupId = "${spring.kafka.consumer.group-id:rental-service-group}"
+            groupId = "${spring.kafka.consumer.group-id:rental-service-group}",
+            containerFactory = "ejectResultListenerContainerFactory"
     )
     public void handleEjectResult(EjectPowerBankResultEvent event) {
         log.info("Eject result received: rentalId={} success={}", event.getRentalId(), event.isSuccess());

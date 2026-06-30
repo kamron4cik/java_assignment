@@ -20,7 +20,8 @@ public class StationEventConsumer {
     /** Simulates locking the cabinet so a powerbank can be dispensed */
     @KafkaListener(
             topics = "acquire-cabinet-lock-event",
-            groupId = "${spring.kafka.consumer.group-id:station-service-group}"
+            groupId = "${spring.kafka.consumer.group-id:station-service-group}",
+            containerFactory = "lockEventListenerContainerFactory"
     )
     public void handleLockEvent(AcquireCabinetLockEvent event) {
         log.info("Simulating cabinet lock: rentalId={}, stationId={}",
@@ -31,7 +32,8 @@ public class StationEventConsumer {
     /** Simulates physically ejecting a powerbank from its slot */
     @KafkaListener(
             topics = "eject-powerbank-event",
-            groupId = "${spring.kafka.consumer.group-id:station-service-group}"
+            groupId = "${spring.kafka.consumer.group-id:station-service-group}",
+            containerFactory = "ejectEventListenerContainerFactory"
     )
     public void handleEjectEvent(EjectPowerBankEvent event) {
         log.info("Simulating powerbank eject: rentalId={}, slotId={}",

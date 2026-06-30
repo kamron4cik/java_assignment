@@ -12,6 +12,8 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import uz.pdp.stationservice.kafka.AcquireCabinetLockEvent;
+import uz.pdp.stationservice.kafka.EjectPowerBankEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,23 +45,42 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
-        Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "uz.pdp.*");
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, Object.class.getName());
-        return new DefaultKafkaConsumerFactory<>(props);
+    public ConsumerFactory<String, Object> lockEventConsumerFactory() {
+        return buildConsumerFactory(AcquireCabinetLockEvent.class);
     }
 
     @Bean
+    public ConsumerFactory<String, Object> ejectEventConsumerFactory() {
+        return buildConsumerFactory(EjectPowerBankEvent.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private ConsumerFactory<String, Object> buildConsumerFactory(Class<?> targetType) {
+        return new DefaultKafkaConsumerFactory<>(
+                Map.of(
+                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                        ConsumerConfig.GROUP_ID_CONFIG, groupId
+                ),
+                new StringDeserializer(),
+                new JsonDeserializer<>((Class<Object>) targetType, false)
+        );
+    }
+
+    /** Factory for acquire-cabinet-lock-event topic */
+    @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object>
-            kafkaListenerContainerFactory() {
+            lockEventListenerContainerFactory() {
         var factory = new ConcurrentKafkaListenerContainerFactory<String, Object>();
-        factory.setConsumerFactory(consumerFactory());
+        factory.setConsumerFactory(lockEventConsumerFactory());
+        return factory;
+    }
+
+    /** Factory for eject-powerbank-event topic */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object>
+            ejectEventListenerContainerFactory() {
+        var factory = new ConcurrentKafkaListenerContainerFactory<String, Object>();
+        factory.setConsumerFactory(ejectEventConsumerFactory());
         return factory;
     }
 }

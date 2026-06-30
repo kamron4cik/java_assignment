@@ -19,5 +19,5 @@ public interface SlotRepository extends JpaRepository<Slot, UUID> {
 
     @Query("SELECT s FROM Slot s WHERE s.station.id = :stationId AND s.status = 'FREE' " +
            "AND s.powerBank.status = 'AVAILABLE' ORDER BY s.slotNumber ASC")
-    Optional<Slot> findFirstAvailableSlot(UUID stationId);
+    List<Slot> findAvailableSlots(UUID stationId);
 }

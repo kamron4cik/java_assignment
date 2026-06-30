@@ -39,7 +39,7 @@ public class StationSimulationService {
         // Simulate some async IoT latency
         try { Thread.sleep(500); } catch (InterruptedException ignored) {}
 
-        slotRepository.findFirstAvailableSlot(event.getStationId())
+        slotRepository.findAvailableSlots(event.getStationId()).stream().findFirst()
                 .ifPresentOrElse(
                         slot -> {
                             // Lock the slot

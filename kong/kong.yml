@@ -29,11 +29,19 @@ services:
     routes:
       - name: payment-cards
         paths: ["/v1/cards"]
-        methods: ["GET", "POST", "DELETE"]
+        methods: ["GET", "POST"]
+        strip_path: false
+      - name: payment-cards-id
+        paths: ["~/v1/cards/(?<id>[^/]+)"]
+        methods: ["GET", "DELETE"]
         strip_path: false
       - name: payment-payments
         paths: ["/v1/payments"]
-        methods: ["GET", "POST", "DELETE"]
+        methods: ["GET", "POST"]
+        strip_path: false
+      - name: payment-payments-id
+        paths: ["~/v1/payments/(?<id>[^/]+)"]
+        methods: ["GET", "DELETE"]
         strip_path: false
 
   # ─── Station Service ─────────────────────────────────────────────────────
